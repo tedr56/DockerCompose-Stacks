@@ -78,24 +78,13 @@ services:
       casdoor:
 
 
-  komodo-mongo:
-    image: mongo
-    labels:
-      komodo.skip: # Prevent Komodo from stopping with StopAllContainers
-    command: --quiet --wiredTigerCacheSizeGB 0.25
-    restart: unless-stopped
-    volumes:
-      - mongo-data:/data/db
-      - mongo-config:/data/configdb
-    env_file:
-      - ./komodo.env
-  
+ 
   komodo-core:
     image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
     container_name: ${KOMODO_CONTAINER_NAME:-komodo}
     restart: unless-stopped
     depends_on:
-      - mongo
+      - komodo-mongo
     labels:
       - komodo.skip: # Prevent Komodo from stopping with StopAllContainers
       - "traefik.enable=true"
@@ -107,9 +96,23 @@ services:
       - ./komodo.env
     volumes:
       ## Core cache for repos for latest commit hash / contents
-      - repo-cache:/repo-cache
+      - komodo-repo-cache:/repo-cache
     networks:
       traefik:
+      komodo:
+
+  komodo-mongo:
+    image: mongo
+    labels:
+      komodo.skip: # Prevent Komodo from stopping with StopAllContainers
+    command: --quiet --wiredTigerCacheSizeGB 0.25
+    restart: unless-stopped
+    volumes:
+      - komodo-mongo-data:/data/db
+      - komodo-mongo-config:/data/configdb
+    env_file:
+      - ./komodo.env
+    networks:
       komodo:
 
   komodo-periphery:
