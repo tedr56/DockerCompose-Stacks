@@ -1,6 +1,6 @@
 services:
   traefik:
-    container_name: traefik
+    container_name: ${TRAEFIK_CONTAINER_NAME:-traefik}
     restart: always
     image: traefik
     hostname: traefik
@@ -26,7 +26,7 @@ services:
   
   casdoor:
     image: casbin/casdoor
-    container_name: casdoor
+    container_name: ${CASDOOR_CONTAINER_NAME:-casdoor}
     restart: unless-stopped
     depends_on:
       - mariadb
@@ -45,7 +45,7 @@ services:
       - "18000:8000"
   
   casdoor-statics:
-    container_name: casdoor-statics
+    container_name: ${CASDOOR_STATICS_CONTAINER_NAME:-casdoor-statics}
     image: halverneus/static-file-server
     restart: unless-stopped
     labels:
@@ -57,7 +57,7 @@ services:
     networks:
       traefik:
   mariadb:
-    container_name: casdoor-mariadb
+    container_name: ${CASDOOR_MARIADB_CONTAINER_NAME:-casdoor-mariadb}
     image: mariadb:latest
     restart: unless-stopped
     environment:
@@ -89,14 +89,18 @@ services:
   
   komodo-core:
     image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
-    labels:
-      komodo.skip: # Prevent Komodo from stopping with StopAllContainers
+    container_name: ${KOMODO_CONTAINER_NAME:-komodo}
     restart: unless-stopped
     depends_on:
       - mongo
-    ports:
-      - 9120:9120
-    env_file: ./compose.env
+    labels:
+      - komodo.skip: # Prevent Komodo from stopping with StopAllContainers
+      - "traefik.enable=true"
+      - "traefik.http.routers.komodo.entrypoints=websecure"
+      - "traefik.http.services.komodo.loadbalancer.server.port=8000"
+      - "traefik.http.routers.komodo.tls=true"
+      - "traefik.docker.network=traefik"
+    env_file: ./casdoor.env
     environment:
       KOMODO_DATABASE_ADDRESS: mongo:27017
       KOMODO_DATABASE_USERNAME: ${KOMODO_DB_USERNAME}
@@ -106,8 +110,6 @@ services:
       - repo-cache:/repo-cache
     networks:
       traefik:
-        ipv4_address:
-          172.172.172.3
       komodo:
 
   komodo-periphery:
