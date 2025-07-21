@@ -30,6 +30,8 @@ services:
     restart: unless-stopped
     depends_on:
       - mariadb
+    env_file:
+      - ./casdoor.env
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.casdoor.entrypoints=websecure"
@@ -48,6 +50,8 @@ services:
     container_name: ${CASDOOR_STATICS_CONTAINER_NAME:-casdoor-statics}
     image: halverneus/static-file-server
     restart: unless-stopped
+    env_file:
+      - ./casdoor.env
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.casdoorstatics.entrypoints=websecure'
@@ -60,6 +64,8 @@ services:
     container_name: ${CASDOOR_MARIADB_CONTAINER_NAME:-casdoor-mariadb}
     image: mariadb:latest
     restart: unless-stopped
+    env_file:
+      - ./casdoor.env
     environment:
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
       MYSQL_DATABASE: casdoor
@@ -78,14 +84,11 @@ services:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     command: --quiet --wiredTigerCacheSizeGB 0.25
     restart: unless-stopped
-    # ports:
-    #   - 27017:27017
     volumes:
       - mongo-data:/data/db
       - mongo-config:/data/configdb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DB_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DB_PASSWORD}
+    env_file:
+      - ./komodo.env
   
   komodo-core:
     image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
@@ -100,11 +103,8 @@ services:
       - "traefik.http.services.komodo.loadbalancer.server.port=8000"
       - "traefik.http.routers.komodo.tls=true"
       - "traefik.docker.network=traefik"
-    env_file: ./casdoor.env
-    environment:
-      KOMODO_DATABASE_ADDRESS: mongo:27017
-      KOMODO_DATABASE_USERNAME: ${KOMODO_DB_USERNAME}
-      KOMODO_DATABASE_PASSWORD: ${KOMODO_DB_PASSWORD}
+    env_file:
+      - ./komodo.env
     volumes:
       ## Core cache for repos for latest commit hash / contents
       - repo-cache:/repo-cache
@@ -117,7 +117,8 @@ services:
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
-    env_file: ./compose.env
+    env_file:
+      - ./komodo.env
     volumes:
       ## Mount external docker socket
       - /var/run/docker.sock:/var/run/docker.sock
