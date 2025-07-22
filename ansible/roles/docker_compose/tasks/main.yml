@@ -1,0 +1,11 @@
+- name: Télécharger Docker Compose
+  get_url:
+    url: https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-x86_64
+    dest: /usr/local/bin/docker-compose
+    mode: '0755'
+    force: yes
+
+- name: Vérifier la version de Docker Compose
+  command: docker-compose --version
+  register: compose_version
+  changed_when: false
